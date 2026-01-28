@@ -13,10 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12' 
       - uses: PyO3/maturin-action@v1
         with:
           command: build
-          args: --release --out dist --find-interpreter
+          # 移除 --find-interpreter，添加 manylinux 兼容性参数
+          args: --release --out dist 
           manylinux: auto
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -28,10 +32,14 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12' # 强制使用 3.12 进行编译，避开 3.14
+          architecture: x64
       - uses: PyO3/maturin-action@v1
         with:
           command: build
-          args: --release --out dist --find-interpreter
+          args: --release --out dist
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -42,10 +50,13 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - uses: PyO3/maturin-action@v1
         with:
           command: build
-          args: --release --out dist --find-interpreter
+          args: --release --out dist
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
