@@ -11,3 +11,11 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dynamic = ["version"]
+dependencies = [
+    "numpy",
+    "numba>=0.50.0"
+]
+
+[tool.maturin]
+python-source = "python"
+module-name = "walitool._walitool"

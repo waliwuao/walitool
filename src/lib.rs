@@ -5,6 +5,7 @@ use numpy::{IntoPyArray, PyArray1, PyReadonlyArray1, PyReadonlyArray2};
 mod core;
 use core::ewm::calculate_ewm;
 use core::topsis::calculate_topsis;
+use core::de::_DE;
 
 #[pyfunction]
 fn entropy_weight<'py>(
@@ -41,8 +42,9 @@ fn topsis<'py>(
 }
 
 #[pymodule]
-fn walitool(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _walitool(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(entropy_weight, m)?)?;
     m.add_function(wrap_pyfunction!(topsis, m)?)?;
+    m.add_class::<_DE>()?;
     Ok(())
 }

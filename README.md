@@ -2,19 +2,21 @@
 
 **A high-performance scientific computing library for Python, implemented in Rust.**
 
-`walitool` is designed to provide fast and efficient implementations of common Multi-Criteria Decision Making (MCDM) algorithms. By leveraging Rust's `ndarray` and `PyO3`, it offers significant performance improvements over pure Python implementations, while maintaining seamless compatibility with the NumPy ecosystem.
+`walitool` is designed to provide fast and efficient implementations of Multi-Criteria Decision Making (MCDM) algorithms and heuristic optimization methods. By leveraging Rust's `ndarray` and `PyO3`, it delivers significant performance improvements over pure Python implementations while maintaining seamless compatibility with the NumPy ecosystem.
 
 ## Features
 
-- **🚀 High Performance**: Core algorithms are written in Rust, ensuring maximum speed and memory efficiency.
-- **⚡ NumPy Compatible**: Accepts standard NumPy arrays as input and returns NumPy arrays.
-- **🧮 Algorithms**:
-  - **Entropy Weight Method (EWM)**: Objective weighting method based on information entropy.
+- **🚀 Native Performance**: Core algorithms are written in Rust, ensuring maximum execution speed and memory efficiency.
+- **⚡ NumPy Integration**: Accepts standard NumPy arrays as input and returns NumPy arrays.
+- **🧬 Optimization Engine**: High-performance Differential Evolution (DE) supporting Numba-accelerated callbacks to eliminate cross-language overhead.
+- **🧮 Integrated Algorithms**:
+  - **Entropy Weight Method (EWM)**: Objective weighting based on information entropy.
   - **TOPSIS**: Technique for Order of Preference by Similarity to Ideal Solution.
+  - **Differential Evolution (DE)**: Parallelized global optimization for large-scale problems.
 
 ## Installation
 
-You can install the library directly from PyPI:
+Install the library directly from PyPI:
 
 ```bash
 pip install walitool
@@ -22,89 +24,89 @@ pip install walitool
 
 ## Quick Start
 
-Here is a complete example of how to evaluate 5 different policies using **Entropy Weight Method** combined with **TOPSIS**.
+### 1. Multi-Criteria Decision Making (EWM + TOPSIS)
 
-### Prerequisite
-
-```bash
-pip install numpy pandas
-```
-
-### Complete Workflow Example
+Evaluate 5 different policies based on 3 indicators (Cost, Efficiency, Sustainability).
 
 ```python
 import numpy as np
-import pandas as pd
 import walitool
 
-# 1. Prepare Data
-# Rows: 5 Policies (P1 to P5)
-# Cols: 3 Indicators (Cost, Efficiency, Sustainability)
+# Data: 5 Policies, 3 Indicators
 data = np.array([
-    [100, 90, 80],  # P1
-    [80,  70, 60],  # P2
-    [90,  85, 88],  # P3
-    [120, 95, 70],  # P4
-    [85,  75, 95]   # P5
+    [100, 90, 80], [80, 70, 60], [90, 85, 88], [120, 95, 70], [85, 75, 95]
 ], dtype=float)
 
-# 2. Define Indicator Types
-# 1 = Positive Indicator (The higher, the better), e.g., Efficiency
-# 0 = Negative Indicator (The lower, the better), e.g., Cost
+# Indicator Types: 1 = Positive (Higher is better), 0 = Negative (Lower is better)
 # Order: [Cost, Efficiency, Sustainability] -> [Negative, Positive, Positive]
 types = np.array([0, 1, 1], dtype=np.int64)
 
-print("--- Step 1: Calculate Weights using Entropy Method ---")
-# Returns: (weights, internal_scores)
+# Step 1: Calculate Weights using Entropy Weight Method
 weights, _ = walitool.entropy_weight(data, types)
 
-# Format output with Pandas for readability
-df_weights = pd.DataFrame(weights, index=["Cost", "Efficiency", "Sustainability"], columns=["Weight"])
-print(df_weights.round(4))
+# Step 2: Calculate Comprehensive Scores using TOPSIS
+scores = walitool.topsis(data, weights, types)
 
-print("\n--- Step 2: Calculate Final Scores using TOPSIS ---")
-# Input: Data, Calculated Weights, and Indicator Types
-topsis_scores = walitool.topsis(data, weights, types)
+print(f"Calculated Weights: {weights}")
+print(f"Final Scores: {scores}")
+```
 
-# Rank the policies
-df_scores = pd.DataFrame({
-    "Policy": ["P1", "P2", "P3", "P4", "P5"],
-    "Score": topsis_scores
-})
-df_scores["Rank"] = df_scores["Score"].rank(ascending=False).astype(int)
-df_scores = df_scores.sort_values("Rank")
+### 2. Differential Evolution (DE) Optimization
 
-print(df_scores.round(4))
+`walitool` supports **Native Callback Mode** via Numba, allowing Rust to call your Python objective function at machine-code speed.
+
+```python
+import numpy as np
+from walitool import DE
+
+# 1. Define a vectorized objective function (e.g., Rastrigin)
+def objective_function(x):
+    # x has shape (pop_size, dimensions)
+    A = 10
+    return A * x.shape[1] + np.sum(x**2 - A * np.cos(2 * np.pi * x), axis=1)
+
+# 2. Configure Optimizer
+dim = 50
+bounds = (np.full(dim, -5.12), np.full(dim, 5.12))
+options = {'F': 0.5, 'CR': 0.9}
+
+# 3. Instantiate and Optimize
+optimizer = DE(pop=100, dimensions=dim, bounds=bounds, options=options)
+best_cost, best_pos = optimizer.optimize(objective_function, iters=20000)
+
+print(f"Global Minimum Cost: {best_cost:.4e}")
 ```
 
 ## API Reference
 
 ### 1. `entropy_weight(data, indicator_type)`
-
 Calculates weights using the Information Entropy method.
-
 - **Parameters**:
-    - `data` (`numpy.ndarray[float64]`): A 2D array where rows represent samples and columns represent indicators.
-    - `indicator_type` (`numpy.ndarray[int64]`): A 1D array indicating the type of each column. `1` for positive (benefit) type, `0` for negative (cost) type.
-- **Returns**:
-    - `tuple(weights, scores)`:
-        - `weights`: A 1D array of calculated weights for each indicator.
-        - `scores`: A 1D array of comprehensive scores based on EWM (simple weighted sum).
+    - `data` (`ndarray`): 2D array (samples × indicators).
+    - `indicator_type` (`ndarray`): 1D array (`1` for benefit, `0` for cost).
+- **Returns**: `(weights, scores)` tuple.
 
 ### 2. `topsis(data, weights, indicator_type)`
-
-Calculates the relative closeness to the ideal solution using the TOPSIS method.
-
+Calculates relative closeness to the ideal solution.
 - **Parameters**:
-    - `data` (`numpy.ndarray[float64]`): A 2D array where rows represent samples and columns represent indicators.
-    - `weights` (`numpy.ndarray[float64]`): A 1D array of weights corresponding to each indicator (must sum to 1 ideally, though the algorithm handles normalization).
-    - `indicator_type` (`numpy.ndarray[int64]`): A 1D array indicating the type of each column (`1` or `0`).
-- **Returns**:
-    - `scores` (`numpy.ndarray[float64]`): A 1D array of TOPSIS scores (0 to 1), where a higher value indicates a better solution.
+    - `weights`: Indicator weights (e.g., from `entropy_weight`).
+- **Returns**: 1D array of scores (0 to 1).
 
-## Performance Note
+### 3. `DE(pop, dimensions, bounds, options)`
+Differential Evolution optimizer.
+- **Parameters**:
+    - `pop`: Population size (recommended 5–10 × dimensions).
+    - `dimensions`: Problem dimensionality.
+    - `bounds`: Tuple of `(min_array, max_array)` defining search space.
+    - `options`: Dictionary containing mutation factor `F` and crossover probability `CR`.
+- **Method**:
+    - `optimize(fitness_function, iters)`: Performs optimization. The `fitness_function` should be vectorized (receive `(N, D)` and return `(N,)`).
 
-Since `walitool` compiles to native machine code, it is significantly faster than equivalent pure Python implementations, especially when processing large datasets or performing batch calculations.
+## Performance Insights
+
+- **Numba Acceleration**: When using `DE`, installing `numba` is highly recommended. `walitool` automatically compiles your Python function and passes a raw C function pointer to the Rust core, bypassing the Python interpreter's loop overhead.
+- **Parallel Mutation**: The Rust core utilizes the `Rayon` library for parallel population mutation, significantly speeding up high-dimensional or large-population tasks on multi-core CPUs.
+- **FFI Optimization**: Uses zero-copy memory mapping for data transfer between Python and Rust.
 
 ## License
 
