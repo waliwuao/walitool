@@ -65,8 +65,7 @@ def run_benchmark(name, optimizer_cls, func, iters, runs=3, **kwargs):
 if __name__ == "__main__":
     scenarios = [
         {"name": "基准大规模 (D500, G2000)", "dim": 500, "pop": 200, "iters": 2000},
-        {"name": "超长周期 (D100, G20000)", "dim": 100, "pop": 100, "iters": 20000},
-        {"name": "极限挑战 (D1000, G5000)", "dim": 1000, "pop": 500, "iters": 5000}
+        {"name": "超长周期 (D100, G20000)", "dim": 100, "pop": 100, "iters": 20000}
     ]
     options = {'F': 0.5, 'CR': 0.9}
     print("="*100)
